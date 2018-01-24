@@ -2,7 +2,6 @@ package robot
 
 import (
 	"encoding/json"
-	"flag"
 	"github.com/gorilla/websocket"
 	"github.com/name5566/leaf/log"
 	"github.com/name5566/leaf/network"
@@ -16,7 +15,7 @@ import (
 
 var (
 	addr = "ws://niuniu.shenzhouxing.com:3661"
-	//addr        = "ws://192.168.1.240:3661"
+	//addr        = "ws://192.168.1.34:3661"
 	clients     []*net.Client
 	unionids    []string
 	nicknames   []string
@@ -33,24 +32,24 @@ func init() {
 
 	names, ips := make([]string, 0), make([]string, 0)
 	var err error
-	names, err = common.ReadFile("D:/robot_nickname.txt")
+	names, err = common.ReadFile("conf/robot_nickname.txt")
 	names = common.Shuffle2(names)
 
-	ips, _ = common.ReadFile("D:/robot_ip.txt")
+	ips, _ = common.ReadFile("conf/robot_ip.txt")
 	ips = common.Shuffle2(ips)
 	if err == nil {
 		nicknames = append(nicknames, names[:robotNumber]...)
-		loginIPs = append(loginIPs, ips[:100]...)
+		loginIPs = append(loginIPs, ips[:robotNumber]...)
 	} else {
 		log.Debug("read file error: %v", err)
 	}
 	temp := rand.Perm(robotNumber)
-	log.Debug("loginIP: %v", loginIPs)
-	log.Debug("nicknames: %v", nicknames)
+
 	for i := 0; i < robotNumber; i++ {
 		unionids = append(unionids, strconv.Itoa(i))
 		headimgurls = append(headimgurls, "https://www.shenzhouxing.com/robot/"+strconv.Itoa(temp[i])+".jpg")
 	}
+	log.Release("<银滩牛牛-机器人-启动>")
 }
 
 func Init() {
@@ -107,7 +106,7 @@ func (a *Agent) readMsg() {
 			}
 			break
 		}
-		//log.Debug("%s", msg)
+
 		jsonMap := map[string]interface{}{}
 		err = json.Unmarshal(msg, &jsonMap)
 		if err == nil {
@@ -119,7 +118,7 @@ func (a *Agent) readMsg() {
 }
 
 func (a *Agent) Run() {
-	go a.wechatLogin()
+	go a.robotLogin()
 	a.readMsg()
 }
 
