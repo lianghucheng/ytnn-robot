@@ -21,13 +21,13 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_Heartbeat":
 			a.sendHeartbeat()
 		case "S2C_ActionBid":
-			Delay(time.Duration(rand.Intn(2)+3)*time.Second, a.bid)
+			Delay(time.Duration(rand.Intn(6)+3)*time.Second, a.bid)
 		case "S2C_ActionDouble":
-			Delay(time.Duration(rand.Intn(2)+3)*time.Second, a.double)
+			Delay(time.Duration(rand.Intn(6)+3)*time.Second, a.double)
 		case "S2C_ShowFifthCard":
-			Delay(time.Duration(rand.Intn(2)+3)*time.Second, a.show)
+			Delay(time.Duration(rand.Intn(6)+3)*time.Second, a.show)
 		case "S2C_ShowWinnersAndLosers":
-			Delay(time.Duration(rand.Intn(2)+6)*time.Second, a.exit)
+			Delay(time.Duration(rand.Intn(6)+3)*time.Second, a.exit)
 		case "S2C_EnterRoom":
 			if int(v.(map[string]interface{})["Error"].(float64)) == S2C_EnterRoom_LackOfChips {
 				a.Fake()
