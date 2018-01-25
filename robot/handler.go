@@ -37,10 +37,9 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				a.Fake()
 			}
 		default:
-			if k == "S2C_UpdateChipTaskList" {
-				return
+			if k == "S2C_PayOK" {
+				log.Debug("message: <%v> ", k)
 			}
-			log.Debug("message: <%v> no deal", k)
 		}
 	}
 }

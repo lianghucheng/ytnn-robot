@@ -49,7 +49,6 @@ func init() {
 		unionids = append(unionids, strconv.Itoa(i))
 		headimgurls = append(headimgurls, "https://www.shenzhouxing.com/robot/"+strconv.Itoa(temp[i])+".jpg")
 	}
-	log.Release("<银滩牛牛-机器人-启动>")
 }
 
 func Init() {
