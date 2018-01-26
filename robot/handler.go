@@ -36,7 +36,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			Delay(time.Duration(rand.Intn(6)+3)*time.Second, a.show)
 		case "S2C_ShowWinnersAndLosers":
 			if a.playerData.PlayTimes <= 0 {
-				Delay(time.Duration(rand.Intn(10)+10)*time.Second, a.exit)
+				Delay(time.Duration(rand.Intn(10)+5)*time.Second, a.exit)
 			}
 		case "S2C_LeaveRoom":
 			if int(v.(map[string]interface{})["Error"].(float64)) == S2C_LeaveRoom_LackOfChips {
