@@ -1,31 +1,11 @@
 package robot
 
-import "math/rand"
-
-// 房间类型
-const (
-	roomBaseScoreMatching = 1 // 1 底分匹配
-)
-
-var (
-	roomType  = roomBaseScoreMatching
-	baseScore = []int{100, 400, 1000}
-)
-
 type PlayerData struct {
-	Unionid       string
-	Nickname      string
-	AccountID     int
-	RoomType      int
-	BaseScore     int
-	RedPacketType int
-	Position      int
-	Role          int
+	Unionid  string
+	Nickname string
 
-	hands []int
-}
-
-func (playerData *PlayerData) getRandRoom() {
-	playerData.RoomType = roomType
-	playerData.BaseScore = baseScore[rand.Intn(len(baseScore))]
+	// 在登陆的时候处理第一次要打的随机局数
+	// 之后每次接受开始游戏的时候把生成好的随机局数进行减一操作
+	// 在退出的函数处理下一次要打的随机局数
+	PlayTimes int // 进入房间机器人玩的局数
 }

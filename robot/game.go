@@ -3,8 +3,13 @@ package robot
 import (
 	"github.com/name5566/leaf/log"
 	"math/rand"
+	"time"
 	"ytnn-robot/msg"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func (a *Agent) sendHeartbeat() {
 	a.writeMsg(&msg.C2S_Heartbeat{})

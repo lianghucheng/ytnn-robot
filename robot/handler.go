@@ -20,6 +20,14 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		switch k {
 		case "S2C_Heartbeat":
 			a.sendHeartbeat()
+		case "S2C_EnterRoom":
+			if int(v.(map[string]interface{})["Error"].(float64)) == S2C_EnterRoom_LackOfChips {
+				a.Fake()
+				return
+			}
+			a.playerData.PlayTimes = rand.Intn(9) + 2
+		case "S2C_GameStart":
+			a.playerData.PlayTimes--
 		case "S2C_ActionBid":
 			Delay(time.Duration(rand.Intn(6)+3)*time.Second, a.bid)
 		case "S2C_ActionDouble":
@@ -27,10 +35,8 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_ShowFifthCard":
 			Delay(time.Duration(rand.Intn(6)+3)*time.Second, a.show)
 		case "S2C_ShowWinnersAndLosers":
-			Delay(time.Duration(rand.Intn(6)+3)*time.Second, a.exit)
-		case "S2C_EnterRoom":
-			if int(v.(map[string]interface{})["Error"].(float64)) == S2C_EnterRoom_LackOfChips {
-				a.Fake()
+			if a.playerData.PlayTimes <= 0 {
+				Delay(time.Duration(rand.Intn(10)+10)*time.Second, a.exit)
 			}
 		case "S2C_LeaveRoom":
 			if int(v.(map[string]interface{})["Error"].(float64)) == S2C_LeaveRoom_LackOfChips {
