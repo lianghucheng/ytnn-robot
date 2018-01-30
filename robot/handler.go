@@ -54,7 +54,5 @@ func Delay(d time.Duration, cb func()) {
 	if cb == nil {
 		return
 	}
-	time.AfterFunc(d, func() {
-		cb()
-	})
+	time.AfterFunc(d, cb)
 }
