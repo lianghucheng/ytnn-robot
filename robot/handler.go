@@ -39,9 +39,9 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				Delay(time.Duration(rand.Intn(7)+5)*time.Second, a.exit)
 			}
 		case "S2C_LeaveRoom":
-			if int(v.(map[string]interface{})["Error"].(float64)) == S2C_LeaveRoom_LackOfChips {
-				Delay(time.Duration(rand.Intn(30)+30)*time.Second, a.Fake)
-			}
+			//if int(v.(map[string]interface{})["Error"].(float64)) == S2C_LeaveRoom_LackOfChips {
+			//Delay(time.Duration(rand.Intn(30)+30)*time.Second, a.Fake)
+			//}
 		default:
 			if k == "S2C_PayOK" {
 				log.Debug("message: <%v> ", k)
