@@ -22,7 +22,8 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			a.sendHeartbeat()
 		case "S2C_EnterRoom":
 			if int(v.(map[string]interface{})["Error"].(float64)) == S2C_EnterRoom_LackOfChips {
-				Delay(time.Duration(rand.Intn(30)+30)*time.Second, a.Fake)
+				//Delay(time.Duration(rand.Intn(30)+30)*time.Second, a.Fake)
+				a.Fake()
 				return
 			}
 			a.playerData.PlayTimes = rand.Intn(9) + 2
@@ -40,7 +41,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			}
 		case "S2C_LeaveRoom":
 			//if int(v.(map[string]interface{})["Error"].(float64)) == S2C_LeaveRoom_LackOfChips {
-			//Delay(time.Duration(rand.Intn(30)+30)*time.Second, a.Fake)
+			//	Delay(time.Duration(rand.Intn(30)+30)*time.Second, a.Fake)
 			//}
 		default:
 			if k == "S2C_PayOK" {
