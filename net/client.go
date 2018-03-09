@@ -30,7 +30,7 @@ func (client *Client) Start() {
 	for i := 0; i < client.ConnNum; i++ {
 		client.wg.Add(1)
 		go client.connect()
-		time.Sleep(1 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 	}
 }
 
