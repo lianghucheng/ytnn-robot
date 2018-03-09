@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/name5566/leaf/log"
 	"github.com/name5566/leaf/network"
+	"github.com/name5566/leaf/timer"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -25,6 +26,8 @@ var (
 	mu          sync.Mutex
 
 	robotNumber = 100 // 机器人数量
+
+	dispatcher *timer.Dispatcher
 )
 
 func init() {
@@ -49,6 +52,8 @@ func init() {
 		unionids = append(unionids, strconv.Itoa(i))
 		headimgurls = append(headimgurls, "https://www.shenzhouxing.com/robot/"+strconv.Itoa(temp[i])+".jpg")
 	}
+
+	dispatcher = timer.NewDispatcher(0)
 }
 
 func Init() {
@@ -118,6 +123,12 @@ func (a *Agent) readMsg() {
 }
 
 func (a *Agent) Run() {
+	go func() {
+		for {
+			(<-dispatcher.ChanTimer).Cb()
+		}
+	}()
+
 	go a.robotLogin()
 	a.readMsg()
 }
