@@ -4,6 +4,7 @@ import (
 	"github.com/name5566/leaf/log"
 	"github.com/name5566/leaf/timer"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -31,15 +32,32 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_Heartbeat":
 			a.sendHeartbeat()
 		case "S2C_UpdateUserChips":
-			// 机器人筹码会先于登陆信息传，如果还没收到就先为0，进入最低等级房
 			a.playerData.Chips = int64(v.(map[string]interface{})["Chips"].(float64))
 		case "S2C_Login":
-			// 触发进入房间
+			index, _ := strconv.Atoi(a.playerData.Unionid)
+			switch {
+			case index > -1 && index < 50:
+				a.playerData.RoomType = roomBaseScoreMatching
+				a.playerData.BaseScore = 100
+			case index > 49 && index < 75:
+				a.playerData.RoomType = roomBaseScoreMatching
+				a.playerData.BaseScore = 400
+			case index > 74 /*&& index < 100*/ :
+				a.playerData.RoomType = roomRedPacketMatching
+				a.playerData.RedPacketType = 1
+			}
+			// 断线重连
 			if v.(map[string]interface{})["AnotherRoom"].(bool) {
 				a.reconnect()
 				return
 			}
-			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+			// 触发进入房间
+			if index > 74 /*&& index < 100 */ {
+				a.enterRoom()
+				CronFunc("10 0 19 * * *", a.enterRoom)
+			} else {
+				a.enterRoom()
+			}
 		case "S2C_EnterRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_EnterRoom_OK:
@@ -53,6 +71,8 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			}
 			a.playerData.PlayTimes = rand.Intn(9) + 2
 		case "S2C_PayOK":
+			// 充值成功后重新进入房间
+			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 		case "S2C_SitDown":
 		case "S2C_GameStart":
 			a.playerData.PlayTimes--
@@ -64,7 +84,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, a.show)
 		case "S2C_ShowWinnersAndLosers":
 			if a.playerData.PlayTimes <= 0 {
-				DelayDo(time.Duration(rand.Intn(5)+10)*time.Second, a.exit)
+				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
 			}
 		case "S2C_ExitRoom", "S2C_LeaveRoom":
 			// 退出房间

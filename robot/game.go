@@ -2,7 +2,6 @@ package robot
 
 import (
 	"math/rand"
-	"strconv"
 	"time"
 	"ytnn-robot/msg"
 )
@@ -31,44 +30,10 @@ func (a *Agent) robotLogin() {
 }
 
 func (a *Agent) enterRoom() {
-	baseScore := 0
-	redPacketType := 0
-	index, _ := strconv.Atoi(a.playerData.Unionid)
-	switch {
-	case index > -1 && index < 50:
-		a.playerData.RoomType = roomBaseScoreMatching
-		switch {
-		case a.playerData.Chips >= 50000:
-			baseScore = 400
-		case a.playerData.Chips >= 200000:
-			baseScore = 1000
-		default:
-			baseScore = 100
-		}
-	case index > 49 && index < 75:
-		a.playerData.RoomType = roomBaseScoreMatching
-		switch {
-		case a.playerData.Chips >= 200000:
-			baseScore = 1000
-		default:
-			baseScore = 400
-		}
-	case index > 74 && index < 100:
-		a.playerData.RoomType = roomRedPacketMatching
-		switch {
-		case a.playerData.Chips >= 80000:
-			redPacketType = 10
-		default:
-			redPacketType = 1
-		}
-		CronFunc("10 0 19 * * *", a.enterRoom)
-	default:
-		return
-	}
 	a.writeMsg(&msg.C2S_Matching{
 		RoomType:      a.playerData.RoomType,
-		BaseScore:     baseScore,
-		RedPacketType: redPacketType,
+		BaseScore:     a.playerData.BaseScore,
+		RedPacketType: a.playerData.RedPacketType,
 	})
 }
 
