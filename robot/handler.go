@@ -12,14 +12,14 @@ const (
 	roomBaseScoreMatching = 1 // 底分匹配
 	roomRedPacketMatching = 4 // 红包匹配
 
-	S2C_EnterRoom_OK          = 0
-	S2C_EnterRoom_NotCreated  = 1 // "房间: " + S2C_EnterRoom.RoomNumber + " 未创建"
-	S2C_EnterRoom_Full        = 2 // "房间: " + S2C_EnterRoom.RoomNumber + " 玩家人数已满"
-	S2C_EnterRoom_Unknown     = 4 // 进入房间出错，请稍后重试
-	S2C_EnterRoom_LackOfChips = 6 // 需要 + S2C_EnterRoom.MinChips + 筹码才能进入
-	S2C_EnterRoom_NotRightNow = 7 // 比赛暂未开始，请到时再来
+	S2C_EnterRoom_OK            = 0
+	S2C_EnterRoom_Full          = 2 // "房间: " + S2C_EnterRoom.RoomNumber + " 玩家人数已满"
+	S2C_EnterRoom_Unknown       = 4 // 进入房间出错，请稍后重试
+	S2C_EnterRoom_LackOfChips   = 6 // 需要 + S2C_EnterRoom.MinChips + 筹码才能进入
+	S2C_EnterRoom_NotRightNow   = 7 // 比赛暂未开始，请到时再来
+	S2C_EnterRoom_MaxChipsLimit = 8 // 进入房间最大携带金币限制
 
-	S2C_LeaveRoom_LackOfChips = 1
+	S2C_CreateRoom_InOtherRoom = 3 // 正在其他房间对局，是否回去？
 )
 
 func init() {
@@ -63,19 +63,33 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			} else {
 				a.enterRoom()
 			}
+		case "S2C_CreateRoom":
+			switch int(v.(map[string]interface{})["Error"].(float64)) {
+			case S2C_CreateRoom_InOtherRoom:
+			default:
+				log.Debug("unionid: %v 创建房间 error: %v", a.playerData.Unionid, int(v.(map[string]interface{})["Error"].(float64)))
+			}
 		case "S2C_EnterRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_EnterRoom_OK:
 				log.Debug("unionid: %v 进入房间", a.playerData.Unionid)
 				a.playerData.PlayTimes = rand.Intn(9) + 2
+			case S2C_EnterRoom_Full:
+				DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 			case S2C_EnterRoom_Unknown:
 				// 机器人进入房间不会创建，如果没有一人房或者两人房就返回这条错误
 				DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 			case S2C_EnterRoom_LackOfChips:
+				log.Debug("unionid: %v 请求充钱", a.playerData.Unionid)
 				a.wxFake(100)
 			case S2C_EnterRoom_NotRightNow:
-				// 红包比赛场未开始
+				// 不处理等待定时器自动触发
+			case S2C_EnterRoom_MaxChipsLimit:
+				log.Debug("unionid: %v 携带金币超过上限", a.playerData.Unionid)
+			default:
+				log.Debug("unionid: %v 进入房间 error: %v", a.playerData.Unionid, int(v.(map[string]interface{})["Error"].(float64)))
 			}
+		case "S2C_GameStop":
 		case "S2C_StandUp":
 		case "S2C_PayOK":
 			log.Debug("unionid: %v 充值成功", a.playerData.Unionid)
@@ -108,7 +122,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_ExitRoom":
 			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 		default:
-			log.Debug("message: <%v> ", k)
+			log.Debug("message: <%v> not deal", k)
 		}
 	}
 }
