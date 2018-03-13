@@ -86,6 +86,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				// 不处理等待定时器自动触发
 			case S2C_EnterRoom_MaxChipsLimit:
 				log.Debug("unionid: %v 携带金币超过上限", a.playerData.Unionid)
+				a.wxFake(-100)
 			default:
 				log.Debug("unionid: %v 进入房间 error: %v", a.playerData.Unionid, int(v.(map[string]interface{})["Error"].(float64)))
 			}
@@ -113,6 +114,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_ShowWinnersAndLosers":
 		case "S2C_ClearAction":
 		case "S2C_AddPlayerChips":
+		case "S2C_AddPlayerRedPacket":
 		case "S2C_ActionStart":
 			if a.playerData.PlayTimes < 1 {
 				DelayDo(time.Duration(rand.Intn(4)+1)*time.Second, a.exit)
@@ -122,7 +124,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_ExitRoom":
 			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 		default:
-			log.Debug("message: <%v> not deal", k)
+			log.Debug("unionid: %v message: <%v> not deal", a.playerData.Unionid, k)
 		}
 	}
 }
