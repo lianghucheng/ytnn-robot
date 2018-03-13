@@ -31,8 +31,12 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		switch k {
 		case "S2C_Heartbeat":
 			a.sendHeartbeat()
+		case "S2C_UpdateRedPacketTaskList":
+		case "S2C_UpdateChipTaskList":
+		case "S2C_UpdateTaskProgress":
 		case "S2C_UpdateUserChips":
 			a.playerData.Chips = int64(v.(map[string]interface{})["Chips"].(float64))
+		case "S2C_UpdatePlayerChips":
 		case "S2C_Login":
 			index, _ := strconv.Atoi(a.playerData.Unionid)
 			switch {
@@ -49,6 +53,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			// 断线重连
 			if v.(map[string]interface{})["AnotherRoom"].(bool) {
 				a.reconnect()
+				log.Debug("unionid: %v 断线重连", a.playerData.Unionid)
 				return
 			}
 			// 触发进入房间
@@ -61,6 +66,8 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_EnterRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_EnterRoom_OK:
+				log.Debug("unionid: %v 进入房间", a.playerData.Unionid)
+				a.playerData.PlayTimes = rand.Intn(9) + 2
 			case S2C_EnterRoom_Unknown:
 				// 机器人进入房间不会创建，如果没有一人房或者两人房就返回这条错误
 				DelayDo(time.Duration(10)*time.Second, a.enterRoom)
@@ -69,25 +76,37 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			case S2C_EnterRoom_NotRightNow:
 				// 红包比赛场未开始
 			}
-			a.playerData.PlayTimes = rand.Intn(9) + 2
+		case "S2C_StandUp":
 		case "S2C_PayOK":
-			// 充值成功后重新进入房间
+			log.Debug("unionid: %v 充值成功", a.playerData.Unionid)
 			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 		case "S2C_SitDown":
 		case "S2C_GameStart":
 			a.playerData.PlayTimes--
 		case "S2C_ActionBid":
 			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, a.bid)
+		case "S2C_Bid":
+		case "S2C_Grab":
+		case "S2C_DecideDealer":
 		case "S2C_ActionDouble":
 			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, a.double)
+		case "S2C_Double":
+		case "S2C_UpdatePokerHands":
 		case "S2C_ShowFifthCard":
 			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, a.show)
+		case "S2C_OxResult":
+		case "S2C_ShowAllResults":
 		case "S2C_ShowWinnersAndLosers":
-			if a.playerData.PlayTimes <= 0 {
-				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
+		case "S2C_ClearAction":
+		case "S2C_AddPlayerChips":
+		case "S2C_ActionStart":
+			if a.playerData.PlayTimes < 1 {
+				DelayDo(time.Duration(rand.Intn(4)+1)*time.Second, a.exit)
 			}
-		case "S2C_ExitRoom", "S2C_LeaveRoom":
-			// 退出房间
+		case "S2C_LeaveRoom":
+			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+		case "S2C_ExitRoom":
+			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 		default:
 			log.Debug("message: <%v> ", k)
 		}
