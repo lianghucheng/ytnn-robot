@@ -40,13 +40,13 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_Login":
 			index, _ := strconv.Atoi(a.playerData.Unionid)
 			switch {
-			case index > -1 && index < 50:
+			case index > -1 && index < 25:
 				a.playerData.RoomType = roomBaseScoreMatching
 				a.playerData.BaseScore = 100
-			case index > 49 && index < 75:
+			case index > 24 && index < 50:
 				a.playerData.RoomType = roomBaseScoreMatching
 				a.playerData.BaseScore = 400
-			case index > 74 /*&& index < 100*/ :
+			case index > 49:
 				a.playerData.RoomType = roomRedPacketMatching
 				a.playerData.RedPacketType = 1
 			}
@@ -57,7 +57,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				return
 			}
 			// 触发进入房间
-			if index > 74 /*&& index < 100 */ {
+			if index > 49 {
 				a.enterRoom()
 				CronFunc("10 0 19 * * *", a.enterRoom)
 			} else {
@@ -73,7 +73,8 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_EnterRoom_OK:
 				log.Debug("unionid: %v 进入房间", a.playerData.Unionid)
-				a.playerData.PlayTimes = rand.Intn(9) + 2
+				//a.playerData.PlayTimes = rand.Intn(9) + 2
+				a.playerData.PlayTimes = 1
 			case S2C_EnterRoom_Full:
 				DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 			case S2C_EnterRoom_Unknown:
@@ -112,13 +113,13 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_OxResult":
 		case "S2C_ShowAllResults":
 		case "S2C_ShowWinnersAndLosers":
+			if a.playerData.PlayTimes < 1 {
+				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
+			}
 		case "S2C_ClearAction":
 		case "S2C_AddPlayerChips":
 		case "S2C_AddPlayerRedPacket":
 		case "S2C_ActionStart":
-			if a.playerData.PlayTimes < 1 {
-				DelayDo(time.Duration(rand.Intn(4)+1)*time.Second, a.exit)
-			}
 		case "S2C_LeaveRoom":
 			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 		case "S2C_ExitRoom":
