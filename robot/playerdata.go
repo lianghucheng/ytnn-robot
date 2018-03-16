@@ -12,4 +12,7 @@ type PlayerData struct {
 	RoomType      int   // 进入房间类型
 	BaseScore     int
 	RedPacketType int
+	Position      int           // 自己的位置
+	DealerPos     int           // 庄的位置
+	PositionHands map[int][]int // 玩家的手牌
 }

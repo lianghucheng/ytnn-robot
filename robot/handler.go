@@ -20,6 +20,9 @@ const (
 	S2C_EnterRoom_MaxChipsLimit = 8 // 进入房间最大携带金币限制
 
 	S2C_CreateRoom_InOtherRoom = 3 // 正在其他房间对局，是否回去？
+
+	S2C_ExitRoom_OK          = 0
+	S2C_ExitRoom_GamePlaying = 1 // 游戏进行中，不能退出房间
 )
 
 func init() {
@@ -36,24 +39,26 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_UpdateTaskProgress":
 		case "S2C_UpdateUserChips":
 			a.playerData.Chips = int64(v.(map[string]interface{})["Chips"].(float64))
+			log.Debug("金币数: %v", a.playerData.Chips)
 		case "S2C_UpdatePlayerChips":
 		case "S2C_Login":
 			index, _ := strconv.Atoi(a.playerData.Unionid)
 			switch {
-			case index > -1 && index < 25:
+			case index >= 0 && index < 25:
 				a.playerData.RoomType = roomBaseScoreMatching
 				a.playerData.BaseScore = 100
-			case index > 24 && index < 50:
+			case index >= 25 && index < 50:
 				a.playerData.RoomType = roomBaseScoreMatching
 				a.playerData.BaseScore = 400
-			case index > 49:
+			case index >= 50:
 				a.playerData.RoomType = roomRedPacketMatching
 				a.playerData.RedPacketType = 1
 			}
+			log.Debug("登陆成功")
 			// 断线重连
 			if v.(map[string]interface{})["AnotherRoom"].(bool) {
 				a.reconnect()
-				log.Debug("unionid: %v 断线重连", a.playerData.Unionid)
+				log.Debug("断线重连")
 				return
 			}
 			// 触发进入房间
@@ -67,45 +72,70 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_CreateRoom_InOtherRoom:
 			default:
-				log.Debug("unionid: %v 创建房间 error: %v", a.playerData.Unionid, int(v.(map[string]interface{})["Error"].(float64)))
+				log.Debug("创建房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
 			}
 		case "S2C_EnterRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_EnterRoom_OK:
-				log.Debug("unionid: %v 进入房间", a.playerData.Unionid)
-				//a.playerData.PlayTimes = rand.Intn(9) + 2
+				log.Debug("进入房间")
+				a.playerData.PositionHands = make(map[int][]int)
 				a.playerData.PlayTimes = 1
+				a.playerData.Position = int(v.(map[string]interface{})["Position"].(float64))
+				log.Debug("座位号: %v", a.playerData.Position)
+				a.getAllPlayer()
 			case S2C_EnterRoom_Full:
+				log.Debug("房间已满")
 				DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 			case S2C_EnterRoom_Unknown:
-				// 机器人进入房间不会创建，如果没有一人房或者两人房就返回这条错误
+				log.Debug("无单人房")
 				DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 			case S2C_EnterRoom_LackOfChips:
-				log.Debug("unionid: %v 请求充钱", a.playerData.Unionid)
+				log.Debug("请求充钱")
 				a.wxFake(100)
 			case S2C_EnterRoom_NotRightNow:
 				// 不处理等待定时器自动触发
 			case S2C_EnterRoom_MaxChipsLimit:
-				log.Debug("unionid: %v 携带金币超过上限", a.playerData.Unionid)
+				log.Debug("金币过多")
 				a.wxFake(-100)
 			default:
-				log.Debug("unionid: %v 进入房间 error: %v", a.playerData.Unionid, int(v.(map[string]interface{})["Error"].(float64)))
+				log.Debug("进入房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
 			}
+		case "S2C_ActionStart":
+			log.Debug("开始倒计时")
+		case "S2C_GameStart":
+			log.Debug("游戏开始")
+			a.playerData.PlayTimes--
 		case "S2C_GameStop":
-		case "S2C_StandUp":
+			log.Debug("游戏终止")
 		case "S2C_PayOK":
-			log.Debug("unionid: %v 充值成功", a.playerData.Unionid)
+			log.Debug("充值成功")
 			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 		case "S2C_SitDown":
-		case "S2C_GameStart":
-			a.playerData.PlayTimes--
+			pos := int(v.(map[string]interface{})["Position"].(float64))
+			a.playerData.PositionHands[pos] = []int{}
+			log.Debug("座位号: %v 玩家就位", pos)
+		case "S2C_StandUp":
+			pos := int(v.(map[string]interface{})["Position"].(float64))
+			if a.playerData.Position == pos {
+				log.Debug("自己起立")
+			} else {
+				log.Debug("座位号: %v 玩家起立", pos)
+			}
+			delete(a.playerData.PositionHands, pos)
 		case "S2C_ActionBid":
-			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, a.bid)
+			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, func() {
+				log.Debug("叫庄: 0")
+				a.doBid(0)
+			})
 		case "S2C_Bid":
 		case "S2C_Grab":
 		case "S2C_DecideDealer":
+			a.playerData.DealerPos = int(v.(map[string]interface{})["Position"].(float64))
 		case "S2C_ActionDouble":
-			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, a.double)
+			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, func() {
+				log.Debug("叫倍: 5")
+				a.doDouble(5)
+			})
 		case "S2C_Double":
 		case "S2C_UpdatePokerHands":
 		case "S2C_ShowFifthCard":
@@ -119,13 +149,22 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_ClearAction":
 		case "S2C_AddPlayerChips":
 		case "S2C_AddPlayerRedPacket":
-		case "S2C_ActionStart":
 		case "S2C_LeaveRoom":
 			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
 		case "S2C_ExitRoom":
-			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+			switch int(v.(map[string]interface{})["Error"].(float64)) {
+			case S2C_ExitRoom_OK:
+				pos := int(v.(map[string]interface{})["Position"].(float64))
+				if a.playerData.Position == pos {
+					log.Debug("自己退出房间")
+					DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+				} else {
+					log.Debug("%v 号退出房间", pos)
+					log.Debug("房间剩余 %v 人", len(a.playerData.PositionHands))
+				}
+			}
 		default:
-			log.Debug("unionid: %v message: <%v> not deal", a.playerData.Unionid, k)
+			log.Debug("message: <%v> not deal", k)
 		}
 	}
 }
@@ -138,10 +177,9 @@ func DelayDo(d time.Duration, cb func()) {
 }
 
 func CronFunc(expr string, cb func()) {
+	if cb == nil {
+		return
+	}
 	cronExpr, _ := timer.NewCronExpr(expr)
-	dispatcher.CronFunc(cronExpr, func() {
-		if cb != nil {
-			cb()
-		}
-	})
+	dispatcher.CronFunc(cronExpr, cb)
 }

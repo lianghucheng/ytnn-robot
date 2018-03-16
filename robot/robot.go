@@ -26,7 +26,7 @@ var (
 	count       = 0
 	mu          sync.Mutex
 
-	robotNumber = 100 // 机器人数量
+	robotNumber = 1 // 机器人数量
 
 	dispatcher *timer.Dispatcher
 )

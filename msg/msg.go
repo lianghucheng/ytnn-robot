@@ -16,6 +16,9 @@ type C2S_Matching struct {
 	RedPacketType int // 红包种类(元): 1、5、10、50
 }
 
+type C2S_GetAllPlayers struct {
+}
+
 type C2S_EnterRoom struct {
 }
 

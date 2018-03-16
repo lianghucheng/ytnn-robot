@@ -37,20 +37,33 @@ func (a *Agent) enterRoom() {
 	})
 }
 
+func (a *Agent) getAllPlayer() {
+	a.writeMsg(&msg.C2S_GetAllPlayers{})
+}
+
 func (a *Agent) reconnect() {
 	a.writeMsg(&msg.C2S_EnterRoom{})
 }
 
-func (a *Agent) bid() {
+func (a *Agent) doBid(bid int) {
+	switch bid {
+	case 0, 1, 2, 3, 4:
+	default:
+		bid = 0
+	}
 	a.writeMsg(&msg.C2S_Bid{
-		Bid: rand.Intn(5),
+		Bid: bid,
 	})
 }
 
-func (a *Agent) double() {
-	double := []int{5, 10, 15, 20, 25}
+func (a *Agent) doDouble(double int) {
+	switch double {
+	case 5, 10, 15, 20, 25:
+	default:
+		double = 0
+	}
 	a.writeMsg(&msg.C2S_Double{
-		Double: double[rand.Intn(len(double))],
+		Double: double,
 	})
 }
 
