@@ -131,6 +131,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_Grab":
 		case "S2C_DecideDealer":
 			a.playerData.DealerPos = int(v.(map[string]interface{})["Position"].(float64))
+			log.Debug("座位号: %v 玩家做庄", a.playerData.DealerPos)
 		case "S2C_ActionDouble":
 			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, func() {
 				log.Debug("叫倍: 5")
