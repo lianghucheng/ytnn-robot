@@ -105,6 +105,10 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_GameStart":
 			log.Debug("游戏开始")
 			a.playerData.PlayTimes--
+		case "S2C_UpdatePokerHands":
+			pos := int(v.(map[string]interface{})["Position"].(float64))
+			//a.playerData.PositionHands[pos] = []interface()v.(map[string]interface{})["Hands"].([]interface{})
+			log.Debug("座位号: %v 牌为: %v", pos, v)
 		case "S2C_GameStop":
 			log.Debug("游戏终止")
 		case "S2C_PayOK":
@@ -138,7 +142,6 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				a.doDouble(5)
 			})
 		case "S2C_Double":
-		case "S2C_UpdatePokerHands":
 		case "S2C_ShowFifthCard":
 			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, a.show)
 		case "S2C_OxResult":
