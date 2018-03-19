@@ -86,7 +86,6 @@ func newAgent(conn *net.MyConn) network.Agent {
 	a := new(Agent)
 	a.conn = conn
 	a.playerData = newPlayerData()
-	a.playerData.PlayTimes = rand.Intn(4) + 2
 	return a
 }
 

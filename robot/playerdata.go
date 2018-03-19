@@ -15,4 +15,6 @@ type PlayerData struct {
 	Position      int           // 自己的位置
 	DealerPos     int           // 庄的位置
 	PositionHands map[int][]int // 玩家的手牌
+	Bid           int           // 叫庄
+	Double        int           // 叫倍
 }

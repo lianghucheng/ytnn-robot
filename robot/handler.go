@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"strconv"
 	"time"
+	"ytnn-robot/poker"
 )
 
 const (
@@ -79,16 +80,16 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			case S2C_EnterRoom_OK:
 				log.Debug("进入房间")
 				a.playerData.PositionHands = make(map[int][]int)
-				a.playerData.PlayTimes = 1
+				//a.playerData.PlayTimes = 1
 				a.playerData.Position = int(v.(map[string]interface{})["Position"].(float64))
 				log.Debug("座位号: %v", a.playerData.Position)
 				a.getAllPlayer()
 			case S2C_EnterRoom_Full:
 				log.Debug("房间已满")
-				DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+				DelayDo(10*time.Second, a.enterRoom)
 			case S2C_EnterRoom_Unknown:
 				log.Debug("无单人房")
-				DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+				DelayDo(10*time.Second, a.enterRoom)
 			case S2C_EnterRoom_LackOfChips:
 				log.Debug("请求充钱")
 				a.wxFake(100)
@@ -98,22 +99,26 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				log.Debug("金币过多")
 				a.wxFake(-100)
 			default:
-				log.Debug("进入房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
+				log.Error("进入房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
 			}
 		case "S2C_ActionStart":
 			log.Debug("开始倒计时")
 		case "S2C_GameStart":
 			log.Debug("游戏开始")
-			a.playerData.PlayTimes--
+			//a.playerData.PlayTimes--
 		case "S2C_UpdatePokerHands":
 			pos := int(v.(map[string]interface{})["Position"].(float64))
-			//a.playerData.PositionHands[pos] = []interface()v.(map[string]interface{})["Hands"].([]interface{})
-			log.Debug("座位号: %v 牌为: %v", pos, v)
+			hands := ArrayInterfaceToInt(v.(map[string]interface{})["Hands"].([]interface{}))
+			if a.playerData.Position == pos {
+				log.Debug("自己的牌为: %v", poker.ToCardsString(hands))
+			} else {
+				log.Debug("座位号: %v 牌为: %v", pos, poker.ToCardsString(hands))
+			}
 		case "S2C_GameStop":
 			log.Debug("游戏终止")
 		case "S2C_PayOK":
 			log.Debug("充值成功")
-			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+			DelayDo(10*time.Second, a.enterRoom)
 		case "S2C_SitDown":
 			pos := int(v.(map[string]interface{})["Position"].(float64))
 			a.playerData.PositionHands[pos] = []int{}
@@ -147,28 +152,37 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_OxResult":
 		case "S2C_ShowAllResults":
 		case "S2C_ShowWinnersAndLosers":
-			if a.playerData.PlayTimes < 1 {
+			switch a.playerData.RoomType {
+			case roomBaseScoreMatching:
+				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, func() {
+					if len(a.playerData.PositionHands) > 2 {
+						log.Debug("满足人数, 退出房间")
+						a.exit()
+					}
+				})
+			case roomRedPacketMatching:
 				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
+			default:
+				log.Error("S2C_ActionStart - default not deal")
 			}
 		case "S2C_ClearAction":
 		case "S2C_AddPlayerChips":
 		case "S2C_AddPlayerRedPacket":
 		case "S2C_LeaveRoom":
-			DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+			DelayDo(10*time.Second, a.enterRoom)
 		case "S2C_ExitRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_ExitRoom_OK:
 				pos := int(v.(map[string]interface{})["Position"].(float64))
 				if a.playerData.Position == pos {
 					log.Debug("自己退出房间")
-					DelayDo(time.Duration(10)*time.Second, a.enterRoom)
+					DelayDo(10*time.Second, a.enterRoom)
 				} else {
 					log.Debug("%v 号退出房间", pos)
-					log.Debug("房间剩余 %v 人", len(a.playerData.PositionHands))
 				}
 			}
 		default:
-			log.Debug("message: <%v> not deal", k)
+			log.Error("message: <%v> not deal", k)
 		}
 	}
 }
@@ -178,6 +192,14 @@ func DelayDo(d time.Duration, cb func()) {
 		return
 	}
 	time.AfterFunc(d, cb)
+}
+
+func ArrayInterfaceToInt(array []interface{}) []int {
+	var temp []int
+	for _, v := range array {
+		temp = append(temp, int(v.(float64)))
+	}
+	return temp
 }
 
 func CronFunc(expr string, cb func()) {
