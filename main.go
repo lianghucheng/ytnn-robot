@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	logger, err := llog.New("release", "", log.Lshortfile|log.LstdFlags)
+	logger, err := llog.New("release", "log", log.Lshortfile|log.LstdFlags)
 	if err != nil {
 		panic(err)
 	}
