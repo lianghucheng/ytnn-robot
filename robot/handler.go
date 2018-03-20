@@ -79,7 +79,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_EnterRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_EnterRoom_OK:
-				log.Release(" %v 进入房间", a.playerData.Unionid)
+				log.Debug(" %v 进入房间", a.playerData.Unionid)
 				a.playerData.PositionHands = make(map[int]*CardsDetail)
 				//a.playerData.PlayTimes = 1
 				a.playerData.Position = int(v.(map[string]interface{})["Position"].(float64))
@@ -187,7 +187,8 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_OxResult":
 		case "S2C_ShowAllResults":
 		case "S2C_ShowWinnersAndLosers":
-			switch a.playerData.RoomType {
+			DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
+			/*switch a.playerData.RoomType {
 			case roomBaseScoreMatching:
 				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, func() {
 					if len(a.playerData.PositionHands) > 2 || len(a.playerData.PositionHands) == 1 {
@@ -198,8 +199,8 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			case roomRedPacketMatching:
 				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
 			default:
-				log.Release("S2C_ActionStart - default not deal")
-			}
+				log.Release("a.playerData.RoomType - default not deal")
+			}*/
 		case "S2C_ClearAction":
 		case "S2C_AddPlayerChips":
 		case "S2C_AddPlayerRedPacket":
