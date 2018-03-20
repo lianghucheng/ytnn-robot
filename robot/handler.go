@@ -4,6 +4,7 @@ import (
 	"github.com/name5566/leaf/log"
 	"github.com/name5566/leaf/timer"
 	"math/rand"
+	"sort"
 	"strconv"
 	"time"
 	"ytnn-robot/poker"
@@ -55,7 +56,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				a.playerData.RoomType = roomRedPacketMatching
 				a.playerData.RedPacketType = 1
 			}
-			log.Debug("登陆成功")
+			//log.Debug("登陆成功")
 			// 断线重连
 			if v.(map[string]interface{})["AnotherRoom"].(bool) {
 				a.reconnect()
@@ -73,55 +74,55 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_CreateRoom_InOtherRoom:
 			default:
-				log.Debug("创建房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
+				log.Release("创建房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
 			}
 		case "S2C_EnterRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_EnterRoom_OK:
-				log.Debug("进入房间")
-				a.playerData.PositionHands = make(map[int][]int)
+				log.Release(" %v 进入房间", a.playerData.Unionid)
+				a.playerData.PositionHands = make(map[int]*CardsDetail)
 				//a.playerData.PlayTimes = 1
 				a.playerData.Position = int(v.(map[string]interface{})["Position"].(float64))
-				log.Debug("座位号: %v", a.playerData.Position)
+				//log.Debug("座位号: %v", a.playerData.Position)
 				a.getAllPlayer()
 			case S2C_EnterRoom_Full:
-				log.Debug("房间已满")
+				//log.Debug("房间已满")
 				DelayDo(10*time.Second, a.enterRoom)
 			case S2C_EnterRoom_Unknown:
-				log.Debug("无单人房")
+				//log.Debug("无单人房")
 				DelayDo(10*time.Second, a.enterRoom)
 			case S2C_EnterRoom_LackOfChips:
-				log.Debug("请求充钱")
+				log.Release("%v 请求充钱", a.playerData.Unionid)
 				a.wxFake(100)
 			case S2C_EnterRoom_NotRightNow:
 				// 不处理等待定时器自动触发
 			case S2C_EnterRoom_MaxChipsLimit:
-				log.Debug("金币过多")
+				log.Release("%v 金币过多", a.playerData.Unionid)
 				a.wxFake(-100)
 			default:
-				log.Error("进入房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
+				log.Release("进入房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
 			}
 		case "S2C_ActionStart":
-			log.Debug("开始倒计时")
+			//log.Debug("开始倒计时")
 		case "S2C_GameStart":
-			log.Debug("游戏开始")
+			//log.Debug("游戏开始")
 			//a.playerData.PlayTimes--
 		case "S2C_UpdatePokerHands":
 			pos := int(v.(map[string]interface{})["Position"].(float64))
 			hands := ArrayInterfaceToInt(v.(map[string]interface{})["Hands"].([]interface{}))
-			if a.playerData.Position == pos {
-				log.Debug("自己的牌为: %v", poker.ToCardsString(hands))
-			} else {
-				log.Debug("座位号: %v 牌为: %v", pos, poker.ToCardsString(hands))
+			sort.Sort(sort.Reverse(sort.IntSlice(hands)))
+			if s, ok := a.playerData.PositionHands[pos]; ok {
+				s.Cards = hands
+				s.Type = poker.GetWinType(s.Cards)
 			}
 		case "S2C_GameStop":
-			log.Debug("游戏终止")
+			//log.Debug("游戏终止")
 		case "S2C_PayOK":
-			log.Debug("充值成功")
+			//log.Debug("充值成功")
 			DelayDo(10*time.Second, a.enterRoom)
 		case "S2C_SitDown":
 			pos := int(v.(map[string]interface{})["Position"].(float64))
-			a.playerData.PositionHands[pos] = []int{}
+			a.playerData.PositionHands[pos] = &CardsDetail{}
 			log.Debug("座位号: %v 玩家就位", pos)
 		case "S2C_StandUp":
 			pos := int(v.(map[string]interface{})["Position"].(float64))
@@ -132,19 +133,53 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			}
 			delete(a.playerData.PositionHands, pos)
 		case "S2C_ActionBid":
-			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, func() {
-				log.Debug("叫庄: 0")
-				a.doBid(0)
+			bid := rand.Intn(5) // 先随机出倍数，然后比不过就置最小值
+			mine, ok := a.playerData.PositionHands[a.playerData.Position]
+			if !ok {
+				return
+			}
+			for pos, s := range a.playerData.PositionHands {
+				if a.playerData.Position == pos {
+					continue
+				}
+				if len(a.playerData.PositionHands[pos].Cards) < 1 {
+					continue
+				}
+				if s.Type > mine.Type ||
+					(s.Type == mine.Type && s.Cards[0] > mine.Cards[0]) {
+					bid = 0
+					break
+				}
+			}
+			DelayDo(time.Duration(rand.Intn(3)+2)*time.Second, func() {
+				log.Debug("叫庄: %v", bid)
+				a.doBid(bid)
 			})
 		case "S2C_Bid":
 		case "S2C_Grab":
 		case "S2C_DecideDealer":
 			a.playerData.DealerPos = int(v.(map[string]interface{})["Position"].(float64))
-			log.Debug("座位号: %v 玩家做庄", a.playerData.DealerPos)
+			//log.Debug("座位号: %v 玩家做庄", a.playerData.DealerPos)
 		case "S2C_ActionDouble":
-			DelayDo(time.Duration(rand.Intn(2)+3)*time.Second, func() {
-				log.Debug("叫倍: 5")
-				a.doDouble(5)
+			if a.playerData.Position == a.playerData.DealerPos {
+				log.Debug("等待其他玩家叫倍")
+				return
+			}
+			canDouble := []int{5, 10, 15, 20, 25}
+			double := canDouble[rand.Intn(5)] // 先随机出倍数，然后比不过就置最小值
+			mine, ok := a.playerData.PositionHands[a.playerData.Position]
+			if !ok || len(mine.Cards) < 1 {
+				return
+			}
+			if s, ok := a.playerData.PositionHands[a.playerData.DealerPos]; ok {
+				if s.Type > mine.Type ||
+					(s.Type == mine.Type && s.Cards[0] > mine.Cards[0]) {
+					double = canDouble[0]
+				}
+			}
+			DelayDo(time.Duration(rand.Intn(3)+2)*time.Second, func() {
+				log.Debug("叫倍: %v", double)
+				a.doDouble(double)
 			})
 		case "S2C_Double":
 		case "S2C_ShowFifthCard":
@@ -155,15 +190,15 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			switch a.playerData.RoomType {
 			case roomBaseScoreMatching:
 				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, func() {
-					if len(a.playerData.PositionHands) > 2 {
-						log.Debug("满足人数, 退出房间")
+					if len(a.playerData.PositionHands) > 2 || len(a.playerData.PositionHands) == 1 {
+						log.Debug("人数: %v, 退出房间", len(a.playerData.PositionHands))
 						a.exit()
 					}
 				})
 			case roomRedPacketMatching:
 				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
 			default:
-				log.Error("S2C_ActionStart - default not deal")
+				log.Release("S2C_ActionStart - default not deal")
 			}
 		case "S2C_ClearAction":
 		case "S2C_AddPlayerChips":
@@ -182,7 +217,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				}
 			}
 		default:
-			log.Error("message: <%v> not deal", k)
+			log.Release("message: <%v> not deal", k)
 		}
 	}
 }
