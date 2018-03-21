@@ -81,7 +81,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			case S2C_EnterRoom_OK:
 				log.Debug(" %v 进入房间", a.playerData.Unionid)
 				a.playerData.PositionHands = make(map[int]*CardsDetail)
-				//a.playerData.PlayTimes = 1
+				a.playerData.PlayTimes = rand.Intn(5) + 5
 				a.playerData.Position = int(v.(map[string]interface{})["Position"].(float64))
 				//log.Debug("座位号: %v", a.playerData.Position)
 				a.getAllPlayer()
@@ -106,7 +106,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			//log.Debug("开始倒计时")
 		case "S2C_GameStart":
 			//log.Debug("游戏开始")
-			//a.playerData.PlayTimes--
+			a.playerData.PlayTimes--
 		case "S2C_UpdatePokerHands":
 			pos := int(v.(map[string]interface{})["Position"].(float64))
 			hands := ArrayInterfaceToInt(v.(map[string]interface{})["Hands"].([]interface{}))
@@ -187,12 +187,12 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_OxResult":
 		case "S2C_ShowAllResults":
 		case "S2C_ShowWinnersAndLosers":
-			DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
-			/*switch a.playerData.RoomType {
+			//DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
+			switch a.playerData.RoomType {
 			case roomBaseScoreMatching:
 				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, func() {
-					if len(a.playerData.PositionHands) > 2 || len(a.playerData.PositionHands) == 1 {
-						log.Debug("人数: %v, 退出房间", len(a.playerData.PositionHands))
+					if len(a.playerData.PositionHands) > 2 || len(a.playerData.PositionHands) == 1 || a.playerData.PlayTimes < 1 {
+						//log.Debug("人数: %v, 退出房间", len(a.playerData.PositionHands))
 						a.exit()
 					}
 				})
@@ -200,7 +200,7 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, a.exit)
 			default:
 				log.Release("a.playerData.RoomType - default not deal")
-			}*/
+			}
 		case "S2C_ClearAction":
 		case "S2C_AddPlayerChips":
 		case "S2C_AddPlayerRedPacket":
