@@ -44,18 +44,6 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			log.Debug("金币数: %v", a.playerData.Chips)
 		case "S2C_UpdatePlayerChips":
 		case "S2C_Login":
-			index, _ := strconv.Atoi(a.playerData.Unionid)
-			switch {
-			case index >= 0 && index < 25:
-				a.playerData.RoomType = roomBaseScoreMatching
-				a.playerData.BaseScore = 100
-			case index >= 25 && index < 50:
-				a.playerData.RoomType = roomBaseScoreMatching
-				a.playerData.BaseScore = 400
-			case index >= 50:
-				a.playerData.RoomType = roomRedPacketMatching
-				a.playerData.RedPacketType = 1
-			}
 			//log.Debug("登陆成功")
 			// 断线重连
 			if v.(map[string]interface{})["AnotherRoom"].(bool) {
@@ -63,12 +51,21 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				log.Debug("断线重连")
 				return
 			}
-			// 触发进入房间
-			if index > 49 {
+			index, _ := strconv.Atoi(a.playerData.Unionid)
+			switch {
+			case index < 25:
+				a.playerData.RoomType = roomBaseScoreMatching
+				a.playerData.BaseScore = 100
+				a.enterRoom()
+			case index < 50:
+				a.playerData.RoomType = roomBaseScoreMatching
+				a.playerData.BaseScore = 400
+				a.enterRoom()
+			default:
+				a.playerData.RoomType = roomRedPacketMatching
+				a.playerData.RedPacketType = 1
 				a.enterRoom()
 				CronFunc("10 0 19 * * *", a.enterRoom)
-			} else {
-				a.enterRoom()
 			}
 		case "S2C_CreateRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
@@ -242,6 +239,7 @@ func CronFunc(expr string, cb func()) {
 	if cb == nil {
 		return
 	}
+	cb()
 	cronExpr, _ := timer.NewCronExpr(expr)
 	dispatcher.CronFunc(cronExpr, cb)
 }
