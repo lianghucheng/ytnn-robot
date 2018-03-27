@@ -64,7 +64,6 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 			default:
 				a.playerData.RoomType = roomRedPacketMatching
 				a.playerData.RedPacketType = 1
-				a.enterRoom()
 				CronFunc("10 0 19 * * *", a.enterRoom)
 			}
 		case "S2C_CreateRoom":
