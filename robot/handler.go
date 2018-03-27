@@ -61,10 +61,12 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 				a.playerData.RoomType = roomBaseScoreMatching
 				a.playerData.BaseScore = 400
 				a.enterRoom()
-			default:
+			case index < 100:
 				a.playerData.RoomType = roomRedPacketMatching
 				a.playerData.RedPacketType = 1
 				CronFunc("10 0 19 * * *", a.enterRoom)
+			default:
+				log.Release("有剩余机器人未处理")
 			}
 		case "S2C_CreateRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
@@ -203,9 +205,9 @@ func (a *Agent) handleMsg(jsonMap map[string]interface{}) {
 		case "S2C_LeaveRoom":
 			DelayDo(10*time.Second, a.enterRoom)
 		case "S2C_ExitRoom":
+			pos := int(v.(map[string]interface{})["Position"].(float64))
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case S2C_ExitRoom_OK:
-				pos := int(v.(map[string]interface{})["Position"].(float64))
 				if a.playerData.Position == pos {
 					log.Debug("自己退出房间")
 					DelayDo(10*time.Second, a.enterRoom)
