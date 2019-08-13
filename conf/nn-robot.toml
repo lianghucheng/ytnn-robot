@@ -1,0 +1,6 @@
+# 万能配置文件
+# ----------------------------游戏的配置消息-----------------------------------
+[CfgGameInfo]
+HallAddress ="ws://111.231.252.178:3653"      #大厅websocket地址
+RobotIndex=500
+LogPath="nn-robot-log"

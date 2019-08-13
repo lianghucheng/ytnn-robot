@@ -1,6 +1,7 @@
 package robot
 
 type PlayerData struct {
+	Token    string
 	Unionid  string
 	Nickname string
 
@@ -17,6 +18,7 @@ type PlayerData struct {
 	PositionHands map[int]*CardsDetail // 玩家的手牌
 	Bid           int                  // 叫庄
 	Double        int                  // 叫倍
+	Accountid     int64
 }
 
 type CardsDetail struct {

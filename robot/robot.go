@@ -1,100 +1,58 @@
 package robot
 
 import (
+	"sync"
+	"ytnn-robot/net"
+
+	"time"
+
 	"encoding/json"
+	"ytnn-robot/msg"
+
 	"github.com/gorilla/websocket"
 	"github.com/name5566/leaf/log"
 	"github.com/name5566/leaf/network"
-	"github.com/name5566/leaf/timer"
-	"math/rand"
-	"strconv"
-	"sync"
-	"time"
-	"ytnn-robot/common"
-	"ytnn-robot/net"
 )
 
-var (
-	addr = "ws://niuniu.shenzhouxing.com:3661"
-	//addr        = "ws://192.168.1.34:3661"
-	//addr        = "ws://139.199.180.94:3661"
-	clients     []*net.Client
-	unionids    []string
-	nicknames   []string
-	headimgurls []string
-	loginIPs    []string
-	count       = 0
-	mu          sync.Mutex
-
-	robotNumber = 100 // 机器人数量
-
-	dispatcher *timer.Dispatcher
-)
+var gameMu *sync.Mutex
+var gamecount int
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
-
-	names, ips := make([]string, 0), make([]string, 0)
-	var err error
-	names, err = common.ReadFile("conf/robot_nickname.txt")
-	names = common.Shuffle2(names)
-
-	ips, _ = common.ReadFile("conf/robot_ip.txt")
-	ips = common.Shuffle2(ips)
-	if err == nil {
-		nicknames = append(nicknames, names[:robotNumber]...)
-		loginIPs = append(loginIPs, ips[:robotNumber]...)
-	} else {
-		log.Debug("read file error: %v", err)
-	}
-	temp := rand.Perm(robotNumber)
-
-	for i := 0; i < robotNumber; i++ {
-		unionids = append(unionids, strconv.Itoa(i))
-		headimgurls = append(headimgurls, "https://www.shenzhouxing.com/robot/"+strconv.Itoa(temp[i])+".jpg")
-	}
-
-	dispatcher = timer.NewDispatcher(0)
+	gameMu = new(sync.Mutex)
 }
-
-func Init() {
+func InitGame(addr string) {
 	client := new(net.Client)
-	client.Addr = addr
-	client.ConnNum = robotNumber
+	client.Addr = "ws://" + addr
+	client.ConnNum = 1
 	client.ConnectInterval = 3 * time.Second
 	client.HandshakeTimeout = 10 * time.Second
 	client.PendingWriteNum = 100
 	client.MaxMsgLen = 4096
-	client.NewAgent = newAgent
+	client.NewAgent = newAgentGame
 
 	client.Start()
 	clients = append(clients, client)
 }
 
-func Destroy() {
+func DestroyGame() {
 	for _, client := range clients {
 		client.Close()
 	}
 }
 
-type Agent struct {
+type AgentGame struct {
 	conn       *net.MyConn
 	playerData *PlayerData
 }
 
-func newAgent(conn *net.MyConn) network.Agent {
-	a := new(Agent)
+func newAgentGame(conn *net.MyConn) network.Agent {
+	a := new(AgentGame)
 	a.conn = conn
 	a.playerData = newPlayerData()
 	return a
 }
 
-func newPlayerData() *PlayerData {
-	playerData := new(PlayerData)
-	return playerData
-}
-
-func (a *Agent) writeMsg(msg interface{}) {
+func (a *AgentGame) writeMsg(msg interface{}) {
 	err := a.conn.WriteMsg(msg)
 	if err != nil {
 		log.Debug("write message: %v", err)
@@ -102,7 +60,7 @@ func (a *Agent) writeMsg(msg interface{}) {
 	return
 }
 
-func (a *Agent) readMsg() {
+func (a *AgentGame) readMsg() {
 	for {
 		msg, err := a.conn.ReadMsg()
 		if err != nil {
@@ -122,7 +80,7 @@ func (a *Agent) readMsg() {
 	}
 }
 
-func (a *Agent) Run() {
+func (a *AgentGame) Run() {
 	go func() {
 		for {
 			(<-dispatcher.ChanTimer).Cb()
@@ -133,6 +91,20 @@ func (a *Agent) Run() {
 	a.readMsg()
 }
 
-func (a *Agent) OnClose() {
+func (a *AgentGame) OnClose() {
 
+}
+
+func (a *AgentGame) sendHeartbeat() {
+	a.writeMsg(&msg.C2S_Heartbeat{})
+}
+
+func (a *AgentGame) robotLogin() {
+	gameMu.Lock()
+	defer gameMu.Unlock()
+
+	a.writeMsg(&msg.C2S_TokenAuthorize{
+		Token: tokenMap[gamecount],
+	})
+	gamecount++
 }

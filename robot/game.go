@@ -10,73 +10,56 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func (a *Agent) sendHeartbeat() {
-	a.writeMsg(&msg.C2S_Heartbeat{})
-}
-
-func (a *Agent) robotLogin() {
-	mu.Lock()
-	defer mu.Unlock()
-	a.playerData.Unionid = unionids[count]
-	a.playerData.Nickname = nicknames[count]
-	a.writeMsg(&msg.C2S_RobotLogin{
-		UnionID:    unionids[count],
-		Nickname:   nicknames[count],
-		Headimgurl: headimgurls[count],
-		LoginIP:    loginIPs[count],
-	})
-	//log.Debug("UnionID: %v - IP: %v - Nickname: %v", unionids[count], loginIPs[count], nicknames[count])
-	count++
-}
-
-func (a *Agent) enterRoom() {
-	a.writeMsg(&msg.C2S_Matching{
+func (a *AgentGame) enterRoom() {
+	a.writeMsg(&msg.C2NN_Matching{
 		RoomType:      a.playerData.RoomType,
-		BaseScore:     a.playerData.BaseScore,
+		MinChips:     a.playerData.BaseScore,
 		RedPacketType: a.playerData.RedPacketType,
 	})
 }
-
-func (a *Agent) getAllPlayer() {
-	a.writeMsg(&msg.C2S_GetAllPlayers{})
+func (a *AgentGame) joinRoom() {
+	a.writeMsg(&msg.C2NN_EnterRoom{})
+}
+func (a *AgentGame) getAllPlayer() {
+	a.writeMsg(&msg.C2NN_GetAllPlayers{})
 }
 
-func (a *Agent) reconnect() {
-	a.writeMsg(&msg.C2S_EnterRoom{})
+func (a *AgentGame) reconnect() {
+	a.writeMsg(&msg.C2NN_EnterRoom{})
 }
 
-func (a *Agent) doBid(bid int) {
+func (a *AgentGame) doBid(bid int) {
 	switch bid {
 	case 0, 1, 2, 3, 4:
 	default:
 		bid = 0
 	}
-	a.writeMsg(&msg.C2S_Bid{
+	a.writeMsg(&msg.C2NN_Bid{
 		Bid: bid,
 	})
 }
 
-func (a *Agent) doDouble(double int) {
+func (a *AgentGame) doDouble(double int) {
 	switch double {
 	case 5, 10, 15, 20, 25:
 	default:
 		double = 0
 	}
-	a.writeMsg(&msg.C2S_Double{
+	a.writeMsg(&msg.C2NN_Double{
 		Double: double,
 	})
 }
 
-func (a *Agent) show() {
-	a.writeMsg(&msg.C2S_Show{})
+func (a *AgentGame) show() {
+	a.writeMsg(&msg.C2NN_Show{})
 }
 
-func (a *Agent) exit() {
-	a.writeMsg(&msg.C2S_ExitRoom{})
+func (a *AgentGame) exit() {
+	a.writeMsg(&msg.C2NN_ExitRoom{})
 }
 
-func (a *Agent) wxFake(fee int) {
-	a.writeMsg(&msg.C2S_FakeWXPay{
+func (a *AgentGame) wxFake(fee int) {
+	a.writeMsg(&msg.C2NN_FakeWXPay{
 		TotalFee: fee, // 100 = 1 元
 	})
 }
