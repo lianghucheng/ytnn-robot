@@ -14,7 +14,7 @@ type C2S_TokenAuthorize struct {
 }
 type C2NN_Matching struct {
 	RoomType      int // 房间类型: 1 底分匹配、4 红包匹配
-	MinChips     int
+	MinChips      int // 底分: 100、400、1000
 	RedPacketType int // 红包种类(元): 1、5、10、50
 }
 
@@ -38,6 +38,6 @@ type C2NN_Show struct {
 type C2NN_ExitRoom struct {
 }
 
-type C2NN_FakeWXPay struct {
+type C2S_FakeWXPay struct {
 	TotalFee int
 }

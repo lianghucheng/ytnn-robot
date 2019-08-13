@@ -3,6 +3,7 @@ package robot
 import (
 	"math/rand"
 	"sort"
+	"strconv"
 	"time"
 	"ytnn-robot/poker"
 
@@ -27,53 +28,65 @@ const (
 	NN2C_ExitRoom_GamePlaying = 1 // 游戏进行中，不能退出房间
 )
 
+func RandInt() int {
+	return rand.Intn(3)
+}
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
-
 func (a *AgentGame) handleMsg(jsonMap map[string]interface{}) {
 	for k, v := range jsonMap {
 		switch k {
 
 		case "S2C_Heartbeat":
 			a.sendHeartbeat()
-		case "S2C_UpdateRedPacketTaskList":
-		case "S2C_UpdateChipTaskList":
-		case "S2C_UpdateTaskProgress":
-		case "S2C_UpdateUserChips":
+		case "NN2C_UpdateRedPacketTaskList":
+		case "NN2C_UpdateChipTaskList":
+		case "NN2C_UpdateTaskProgress":
+		case "NN2C_UpdateUserChips":
 			a.playerData.Chips = int64(v.(map[string]interface{})["Chips"].(float64))
 			log.Debug("金币数: %v", a.playerData.Chips)
-		case "S2C_UpdatePlayerChips":
+		case "NN2C_UpdatePlayerChips":
 		case "S2C_Authorize":
+			minChips := 0
+			index := RandInt()
+			if index == 0 {
+				minChips = 2000
+			}
+			if index == 1 {
+				minChips = 50000
+			}
+			if index == 2 {
+				minChips = 500000
+			}
 			a.playerData.RoomType = roomBaseScoreMatching
-			a.playerData.BaseScore = 2000
-			a.playerData.PositionHands=make(map[int]*CardsDetail)
+			a.playerData.BaseScore = minChips
 			a.enterRoom()
-		//case "S2C_Login":
-		//	//log.Debug("登陆成功")
-		//	// 断线重连
-		//	if v.(map[string]interface{})["AnotherRoom"].(bool) {
-		//		a.reconnect()
-		//		log.Debug("断线重连")
-		//		return
-		//	}
-		//	index, _ := strconv.Atoi(a.playerData.Unionid)
-		//	switch {
-		//	case index < 1000:
-		//		a.playerData.RoomType = roomBaseScoreMatching
-		//		a.playerData.BaseScore = 2000
-		//		a.enterRoom()
-		//	case index < 50:
-		//		a.playerData.RoomType = roomBaseScoreMatching
-		//		a.playerData.BaseScore =
-		//		a.enterRoom()
-		//	case index < 100:
-		//		a.playerData.RoomType = roomRedPacketMatching
-		//		a.playerData.RedPacketType = 1
-		//		CronFunc("10 0 19 * * *", a.enterRoom)
-		//	default:
-		//		log.Release("有剩余机器人未处理")
-		//	}
+		case "S2C_Login":
+			//log.Debug("登陆成功")
+			// 断线重连
+			if v.(map[string]interface{})["AnotherRoom"].(bool) {
+				a.reconnect()
+				log.Debug("断线重连")
+				return
+			}
+			index, _ := strconv.Atoi(a.playerData.Unionid)
+			switch {
+			case index < 1000:
+				a.playerData.RoomType = roomBaseScoreMatching
+				a.playerData.BaseScore = 100
+				a.enterRoom()
+			case index < 50:
+				a.playerData.RoomType = roomBaseScoreMatching
+				a.playerData.BaseScore = 400
+				a.enterRoom()
+			case index < 100:
+				a.playerData.RoomType = roomRedPacketMatching
+				a.playerData.RedPacketType = 1
+				CronFunc("10 0 19 * * *", a.enterRoom)
+			default:
+				log.Release("有剩余机器人未处理")
+			}
 		case "NN2C_CreateRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case NN2C_CreateRoom_InOtherRoom:
@@ -81,7 +94,7 @@ func (a *AgentGame) handleMsg(jsonMap map[string]interface{}) {
 			default:
 				log.Release("创建房间 error: %v", int(v.(map[string]interface{})["Error"].(float64)))
 			}
-		case "S2C_EnterRoom":
+		case "NN2C_EnterRoom":
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case NN2C_EnterRoom_OK:
 				log.Debug(" %v 进入房间", a.playerData.Unionid)
@@ -197,12 +210,10 @@ func (a *AgentGame) handleMsg(jsonMap map[string]interface{}) {
 			switch a.playerData.RoomType {
 			case roomBaseScoreMatching:
 				DelayDo(time.Duration(rand.Intn(4)+11)*time.Second, func() {
-					/*
-						if len(a.playerData.PositionHands) > 2 || len(a.playerData.PositionHands) == 1 || a.playerData.PlayTimes < 1 {
-							//log.Debug("人数: %v, 退出房间", len(a.playerData.PositionHands))
-							a.exit()
-						}
-					*/
+					if a.playerData.PlayTimes < 1 {
+						//log.Debug("人数: %v, 退出房间", len(a.playerData.PositionHands))
+						a.exit()
+					}
 					log.Debug("****")
 				})
 			case roomRedPacketMatching:
@@ -218,12 +229,39 @@ func (a *AgentGame) handleMsg(jsonMap map[string]interface{}) {
 		case "NN2C_AddPlayerRedPacket":
 
 		case "NN2C_LeaveRoom":
+			minChips := 0
+			index := RandInt()
+			if index == 0 {
+				minChips = 2000
+			}
+			if index == 1 {
+				minChips = 50000
+			}
+			if index == 2 {
+				minChips = 500000
+			}
+			a.playerData.RoomType = roomBaseScoreMatching
+			a.playerData.BaseScore = minChips
+			log.Debug("自己退出房间")
 			DelayDo(10*time.Second, a.enterRoom)
 		case "NN2C_ExitRoom":
 			pos := int(v.(map[string]interface{})["Position"].(float64))
 			switch int(v.(map[string]interface{})["Error"].(float64)) {
 			case NN2C_ExitRoom_OK:
 				if a.playerData.Position == pos {
+					minChips := 0
+					index := RandInt()
+					if index == 0 {
+						minChips = 2000
+					}
+					if index == 1 {
+						minChips = 50000
+					}
+					if index == 2 {
+						minChips = 500000
+					}
+					a.playerData.RoomType = roomBaseScoreMatching
+					a.playerData.BaseScore = minChips
 					log.Debug("自己退出房间")
 					DelayDo(10*time.Second, a.enterRoom)
 				} else {

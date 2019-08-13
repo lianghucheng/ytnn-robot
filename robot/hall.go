@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"ytnn-robot/conf"
 	"ytnn-robot/msg"
 	"ytnn-robot/net"
 
@@ -17,8 +18,8 @@ import (
 
 var (
 	//addr = "ws://niuniu.shenzhouxing.com:3661"
-	addr = "ws://localhost:3653"
-	//addr = "ws://47.93.13.22:2000"
+	//addr = "ws://192.168.1.163:3653"
+	addr = conf.GetCfgGameInfo().HallAddress
 	//addr        = "ws://139.199.180.94:3661"
 	clients     []*net.Client
 	unionids    []string
@@ -29,14 +30,15 @@ var (
 	loginCount  = 0
 	mu          sync.Mutex
 	loginMu     sync.Mutex
-	robotNumber = 100 // 机器人数量
+	RobotNumber *int // 机器人数量
 
 	dispatcher *timer.Dispatcher
-	tokenMap   =make(map[int]string)
+	tokenMap   map[int]string
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+	tokenMap = make(map[int]string)
 
 	dispatcher = timer.NewDispatcher(0)
 }
@@ -44,7 +46,7 @@ func init() {
 func InitHall() {
 	client := new(net.Client)
 	client.Addr = addr
-	client.ConnNum = robotNumber
+	client.ConnNum = *RobotNumber
 	client.ConnectInterval = 3 * time.Second
 	client.HandshakeTimeout = 10 * time.Second
 	client.PendingWriteNum = 100
@@ -160,7 +162,8 @@ func (a *Agent) handleMsgHall(jsonMap map[string]interface{}) {
 			a.sendHallHeartbeat()
 
 		case "H2C_GameAddr":
-			nNAddr := v.(map[string]interface{})["NN"].(map[string]interface{})["Addr"].(string)
+			addrInfo := v.(map[string]interface{})["NN"]
+			nNAddr := addrInfo.(map[string]interface{})["Addr"].(string)
 			log.Debug("牛牛的地址:%v", nNAddr)
 			InitGame(nNAddr)
 
@@ -182,16 +185,9 @@ func (a *Agent) handleMsgHall(jsonMap map[string]interface{}) {
 func (a *Agent) robotLogin() {
 	loginMu.Lock()
 	defer loginMu.Unlock()
-	account:=""
-	if loginCount > 0 &&loginCount<9{
-		account = "root40"
-	}else{
-		account = "root4"
-	}
-	account += strconv.Itoa(loginCount + 1)
-	if loginCount == 0 {
-		account = "root401"
-	}
+	account := "root"
+	account += strconv.Itoa(loginCount + 1 + 500)
+
 	a.writeMsg(&msg.C2H_AccountLogin{
 		Account:  account,
 		Password: "123456",

@@ -13,7 +13,7 @@ func init() {
 func (a *AgentGame) enterRoom() {
 	a.writeMsg(&msg.C2NN_Matching{
 		RoomType:      a.playerData.RoomType,
-		MinChips:     a.playerData.BaseScore,
+		MinChips:      a.playerData.BaseScore,
 		RedPacketType: a.playerData.RedPacketType,
 	})
 }
@@ -59,7 +59,7 @@ func (a *AgentGame) exit() {
 }
 
 func (a *AgentGame) wxFake(fee int) {
-	a.writeMsg(&msg.C2NN_FakeWXPay{
+	a.writeMsg(&msg.C2S_FakeWXPay{
 		TotalFee: fee, // 100 = 1 元
 	})
 }
